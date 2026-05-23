@@ -1,6 +1,6 @@
 # COTEN RADIO エピソードガイド
 
-SpotifyのCOTEN RADIOをシリーズ別・キーワード検索で探せる静的Webサイト。
+COTEN RADIOのエピソードをシリーズ別・キーワード検索で探せる静的Webサイト。タップするとApple Podcastsアプリで開く。
 
 **公開URL:** https://TottyJp.github.io/coten-radio/
 
