@@ -72,24 +72,57 @@ function extractSeriesName(firstEpisodeTitle) {
   return firstEpisodeTitle.slice(0, 30);
 }
 
-async function fetchItunesUrls() {
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchItunesUrls(seriesNames) {
+  const map = {};
+
+  // 直近200話を一括取得
   const json = await fetch(ITUNES_URL);
   const data = JSON.parse(json);
-  const map = {};
   for (const r of data.results) {
-    if (r.kind === 'podcast-episode') {
-      map[r.trackName.trim()] = r.trackViewUrl;
-    }
+    if (r.kind === 'podcast-episode') map[r.trackName.trim()] = r.trackViewUrl;
   }
+  console.log(`一括取得: ${Object.keys(map).length}件`);
+
+  // シリーズ名で検索して古い話を補完
+  for (let i = 0; i < seriesNames.length; i++) {
+    const name = seriesNames[i];
+    const q = encodeURIComponent(`COTEN RADIO ${name}`);
+    const url = `https://itunes.apple.com/search?term=${q}&entity=podcastEpisode&media=podcast&limit=25&country=jp`;
+    try {
+      const res = await fetch(url);
+      const d = JSON.parse(res);
+      let added = 0;
+      for (const r of (d.results || [])) {
+        if (r.kind === 'podcast-episode' && !map[r.trackName.trim()]) {
+          map[r.trackName.trim()] = r.trackViewUrl;
+          added++;
+        }
+      }
+      process.stdout.write(`\r検索中... ${i+1}/${seriesNames.length} (累計: ${Object.keys(map).length}件)`);
+    } catch(e) { /* skip */ }
+    await sleep(300); // レート制限対策
+  }
+  console.log(`\n合計取得: ${Object.keys(map).length}件`);
   return map;
 }
 
 (async () => {
   console.log('RSSを取得中...');
-  const [xml, itunesMap] = await Promise.all([fetch(RSS_URL), fetchItunesUrls()]);
+  const xml = await fetch(RSS_URL);
   const items = parseXml(xml);
   console.log(`取得エピソード数: ${items.length}`);
-  console.log(`iTunes URL取得数: ${Object.keys(itunesMap).length}`);
+
+  // シリーズ名を先に抽出
+  const seriesNamesForSearch = [];
+  const nums = new Set();
+  for (const item of items) {
+    const m = /【(\d+)-1】/.exec(item.title);
+    if (m && !nums.has(m[1])) { nums.add(m[1]); seriesNamesForSearch.push(extractSeriesName(item.title)); }
+  }
+
+  const itunesMap = await fetchItunesUrls(seriesNamesForSearch);
 
   const seriesMap = {};
   const bonusEpisodes = [];
