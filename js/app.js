@@ -113,6 +113,19 @@ function episodeItemHTML(ep, seriesTitle = null) {
   const tag = seriesTitle
     ? `<span class="episode-series-tag">${escapeHtml(seriesTitle)}</span>`
     : '';
+  if (!ep.hasLink) {
+    return `
+      <div class="episode-item no-link">
+        <span class="episode-number">#${ep.number}</span>
+        <div class="episode-info">
+          ${tag}
+          <div class="episode-title">${escapeHtml(ep.title)}</div>
+          <div class="episode-desc">${escapeHtml(ep.description)}</div>
+        </div>
+        <span class="no-link-badge">リンクなし</span>
+      </div>
+    `;
+  }
   return `
     <a class="episode-item" href="${escapeHtml(ep.spotifyUrl)}" target="_blank" rel="noopener">
       <span class="episode-number">#${ep.number}</span>

@@ -132,12 +132,13 @@ async function fetchItunesUrls(seriesNames) {
     const info = extractSeriesInfo(item.title);
     const desc = stripHtml(item.description).slice(0, 200);
 
-    const appleUrl = itunesMap[item.title.trim()] || item.link;
+    const appleUrl = itunesMap[item.title.trim()] || null;
     const epData = (title, num) => ({
       number: num,
       title: title.trim(),
       description: desc,
       spotifyUrl: appleUrl,
+      hasLink: !!appleUrl,
     });
 
     if (info.seriesNum !== null) {
