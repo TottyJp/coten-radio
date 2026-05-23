@@ -1,11 +1,13 @@
 // Usage: node scripts/import-rss.js
 // Fetches COTEN RADIO RSS and writes data/episodes.json
+// Uses iTunes API to get proper Apple Podcasts URLs (no credentials needed)
 
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
 const RSS_URL = 'https://anchor.fm/s/8c2088c/podcast/rss';
+const ITUNES_URL = 'https://itunes.apple.com/lookup?id=1450522865&entity=podcastEpisode&limit=200&country=jp';
 const OUT_PATH = path.join(__dirname, '../data/episodes.json');
 
 const SERIES_COLORS = [
@@ -70,11 +72,24 @@ function extractSeriesName(firstEpisodeTitle) {
   return firstEpisodeTitle.slice(0, 30);
 }
 
+async function fetchItunesUrls() {
+  const json = await fetch(ITUNES_URL);
+  const data = JSON.parse(json);
+  const map = {};
+  for (const r of data.results) {
+    if (r.kind === 'podcast-episode') {
+      map[r.trackName.trim()] = r.trackViewUrl;
+    }
+  }
+  return map;
+}
+
 (async () => {
   console.log('RSSを取得中...');
-  const xml = await fetch(RSS_URL);
+  const [xml, itunesMap] = await Promise.all([fetch(RSS_URL), fetchItunesUrls()]);
   const items = parseXml(xml);
   console.log(`取得エピソード数: ${items.length}`);
+  console.log(`iTunes URL取得数: ${Object.keys(itunesMap).length}`);
 
   const seriesMap = {};
   const bonusEpisodes = [];
@@ -84,28 +99,21 @@ function extractSeriesName(firstEpisodeTitle) {
     const info = extractSeriesInfo(item.title);
     const desc = stripHtml(item.description).slice(0, 200);
 
+    const appleUrl = itunesMap[item.title.trim()] || item.link;
+    const epData = (title, num) => ({
+      number: num,
+      title: title.trim(),
+      description: desc,
+      spotifyUrl: appleUrl,
+    });
+
     if (info.seriesNum !== null) {
       if (!seriesMap[info.seriesNum]) seriesMap[info.seriesNum] = [];
-      seriesMap[info.seriesNum].push({
-        number: info.episodeNum,
-        title: info.rest.trim(),
-        description: desc,
-        spotifyUrl: item.link,
-      });
+      seriesMap[info.seriesNum].push(epData(info.rest, info.episodeNum));
     } else if (info.isBonusu) {
-      bonusEpisodes.push({
-        number: info.episodeNum,
-        title: info.rest.trim(),
-        description: desc,
-        spotifyUrl: item.link,
-      });
+      bonusEpisodes.push(epData(info.rest, info.episodeNum));
     } else {
-      otherEpisodes.push({
-        number: otherEpisodes.length + 1,
-        title: item.title,
-        description: desc,
-        spotifyUrl: item.link,
-      });
+      otherEpisodes.push(epData(item.title, otherEpisodes.length + 1));
     }
   }
 
