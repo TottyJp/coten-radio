@@ -2,6 +2,10 @@
 
 SpotifyのCOTEN RADIOをシリーズ別・キーワード検索で探せる静的Webサイト。
 
+**公開URL:** https://TottyJp.github.io/coten-radio/
+
+---
+
 ## 使い方
 
 ### ローカルで確認する
@@ -19,7 +23,9 @@ npx serve . -p 4321
 node scripts/import-rss.js
 ```
 
-`data/episodes.json` がRSSフィードから自動更新される。
+`data/episodes.json` がRSSフィード＋iTunes APIから自動更新される。
+
+完了後、GitHub Desktopで **Push origin** するとサイトに反映される。
 
 ---
 
@@ -38,30 +44,33 @@ COTENRADIO/
 
 ---
 
-## RSSインポートの仕組み
+## インポートの仕組み
 
+### RSSフィード（全エピソード取得）
 - **取得元:** `https://anchor.fm/s/8c2088c/podcast/rss`（Spotify for Podcasters）
-- iTunes APIでApple PodcastsのURLからRSS URLを逆引きして発見
+- RSS URLはiTunes APIで逆引きして発見：
   ```bash
   curl "https://itunes.apple.com/lookup?id=1450522865&entity=podcast" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['results'][0]['feedUrl'])"
   ```
 - タイトルの `【N-M】` パターンでシリーズ番号・話数を判別
-- `【番外編＃N】` パターンは別シリーズとして分類
+- `【番外編＃N】` パターンは番外編シリーズとして分類
+
+### iTunes API（Apple Podcasts URLの取得）
+- **認証不要・無料**
+- 直近200話を一括取得、さらにシリーズ名で検索して古い話を補完
+- Apple Podcasts URL（`podcasts.apple.com`）が取得できたエピソードはタップでPodcastsアプリが開く
+- 取得できなかったエピソードは `hasLink: false` としてグレーアウト＋「リンクなし」バッジ表示
+
+### 現在の対応状況
+- 全727話中 約588話 → Podcastsアプリで開く
+- 残り約25話 → リンクなし（古すぎてiTunes APIにデータなし）
 
 ---
 
-## GitHub Pagesへのデプロイ
+## GitHub Pagesへのデプロイ（初回設定済み）
 
-1. GitHubにリポジトリを作成
-2. プッシュ
-   ```bash
-   git init
-   git add .
-   git commit -m "initial commit"
-   git remote add origin https://github.com/ユーザー名/リポジトリ名.git
-   git push -u origin main
-   ```
-3. GitHubリポジトリの Settings → Pages → Source を `main` ブランチに設定
-4. `https://ユーザー名.github.io/リポジトリ名/` で公開される
+リポジトリ: https://github.com/TottyJp/coten-radio
 
-> データ更新後は `git add data/episodes.json && git commit -m "update episodes" && git push` でサイトに反映。
+データ更新後の反映手順：
+1. `node scripts/import-rss.js` を実行
+2. GitHub Desktopで **Push origin** をクリック
