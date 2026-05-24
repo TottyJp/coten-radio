@@ -137,7 +137,7 @@ async function fetchItunesUrls(seriesNames) {
       number: num,
       title: title.trim(),
       description: desc,
-      spotifyUrl: appleUrl,
+      applePodcastUrl: appleUrl,
       hasLink: !!appleUrl,
     });
 

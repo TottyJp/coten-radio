@@ -127,14 +127,14 @@ function episodeItemHTML(ep, seriesTitle = null) {
     `;
   }
   return `
-    <a class="episode-item" href="${escapeHtml(ep.spotifyUrl)}" target="_blank" rel="noopener">
+    <a class="episode-item" href="${escapeHtml(ep.applePodcastUrl)}" target="_blank" rel="noopener">
       <span class="episode-number">#${ep.number}</span>
       <div class="episode-info">
         ${tag}
         <div class="episode-title">${escapeHtml(ep.title)}</div>
         <div class="episode-desc">${escapeHtml(ep.description)}</div>
       </div>
-      <span class="spotify-icon">▶</span>
+      <span class="podcast-icon">▶</span>
     </a>
   `;
 }
